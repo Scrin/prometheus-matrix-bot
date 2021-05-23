@@ -1,0 +1,12 @@
+version: "3.5"
+services:
+  prometheus_matrix_bot:
+    image: scrinii/prometheus-matrix-bot
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      PROMETHEUS_MATRIX_HOMESERVER_URL: "http://matrix.example.com:8008"
+      PROMETHEUS_MATRIX_USER_ID: "@prometheus:example.com"
+      PROMETHEUS_MATRIX_ACCESS_TOKEN: "xxxx"
+      PROMETHEUS_MATRIX_ADMIN: "@admin:example.com"
