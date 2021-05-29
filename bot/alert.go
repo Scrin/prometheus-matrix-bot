@@ -56,10 +56,13 @@ func (bot PrometheusBot) AlertUpdate(msg AlertMessage) {
 		sendTo := strings.ReplaceAll(strings.TrimPrefix(msg.Receiver, "matrix-"), "\\", "")
 		eventID := bot.idToMatrixEvent[sendTo+alert.Fingerprint]
 		if eventID == "" {
-			eventID := <-bot.client.SendMessage(sendTo, formatMessage(alert))
+			eventID = <-bot.client.SendMessage(sendTo, formatMessage(alert))
 			bot.idToMatrixEvent[sendTo+alert.Fingerprint] = eventID
 		} else {
 			bot.client.EditMessage(sendTo, eventID, formatMessage(alert))
+		}
+		if alert.Status == "resolved" {
+			delete(bot.idToMatrixEvent, sendTo+alert.Fingerprint)
 		}
 	}
 }
