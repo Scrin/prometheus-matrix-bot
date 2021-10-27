@@ -10,3 +10,6 @@ services:
       PROMETHEUS_MATRIX_USER_ID: "@prometheus:example.com"
       PROMETHEUS_MATRIX_ACCESS_TOKEN: "xxxx"
       PROMETHEUS_MATRIX_ADMIN: "@admin:example.com"
+      PROMETHEUS_ALERTMANAGER_URL: "https://example.com/alertmanager"
+      PROMETHEUS_AUTH_USERNAME: "matrixbot"
+      PROMETHEUS_AUTH_PASSWORD: "xxx"
