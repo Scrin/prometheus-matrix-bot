@@ -36,7 +36,11 @@ type alertsResponse []struct {
 	} `json:"receiver"`
 }
 
-func (bot PrometheusBot) alertQuery(sendTo string) {
+func (bot PrometheusBot) alertQuery(sendTo string, msgParts []string) {
+	filter := "active"
+	if len(msgParts) >= 2 {
+		filter = msgParts[1]
+	}
 	req, err := http.NewRequest("GET", bot.alertmanagerURL+"/api/v2/alerts/groups", nil)
 	req.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(bot.prometheusUser+":"+bot.prometheusPassword)))
 	resp, err := http.DefaultClient.Do(req)
@@ -52,6 +56,24 @@ func (bot PrometheusBot) alertQuery(sendTo string) {
 	alerts := make(map[string]Alert) // de-dupe alerts
 	for _, entry := range alertsResp {
 		for _, a := range entry.Alerts {
+			switch filter {
+			case "active":
+				if a.Status.State != "active" {
+					continue
+				}
+			case "resolved":
+				if a.Status.State != "resolved" {
+					continue
+				}
+			case "suppressed":
+				if a.Status.State != "suppressed" {
+					continue
+				}
+			case "all":
+			default:
+				bot.client.SendMessage(sendTo, "Invalid filter: "+filter)
+				return
+			}
 			alerts[a.Fingerprint] = Alert{
 				Status:       a.Status.State,
 				Labels:       a.Labels,

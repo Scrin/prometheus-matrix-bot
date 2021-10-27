@@ -36,10 +36,11 @@ func (bot PrometheusBot) handleTextEvent(event *gomatrix.Event) {
 	}
 	if msgtype == "m.text" && event.Sender != bot.client.UserID {
 		msg := event.Content["body"].(string)
-		msgCommand := strings.Split(msg, " ")[0]
+		parts := strings.Split(msg, " ")
+		msgCommand := parts[0]
 		switch msgCommand {
 		case "!alerts":
-			bot.alertQuery(event.RoomID)
+			bot.alertQuery(event.RoomID, parts)
 		}
 	}
 }
