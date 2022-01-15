@@ -89,11 +89,18 @@ func (bot PrometheusBot) alertQuery(sendTo string, msgParts []string) {
 		bot.client.SendMessage(sendTo, "No alerts")
 		return
 	}
+	alertCount := len(alerts)
 	var queryBuilder strings.Builder
-	queryBuilder.WriteString(fmt.Sprintf("<h2>%d alerts</h2>", len(alerts)))
+	queryBuilder.WriteString(fmt.Sprintf("<h2>%d alerts</h2>", alertCount))
+	i := 0
 	for _, alert := range alerts {
+		if i >= 10 {
+			queryBuilder.WriteString(fmt.Sprintf("<h4>And %d more...</h4>", alertCount-10))
+			break
+		}
 		queryBuilder.WriteString(formatMessage(alert))
 		queryBuilder.WriteString("<br>")
+		i++
 	}
 	bot.client.SendMessage(sendTo, queryBuilder.String())
 }
