@@ -1,10 +1,12 @@
 package main
 
 import (
-	"log"
 	"os"
-	"prometheus-matrix-bot/bot"
 	"strings"
+
+	"github.com/Scrin/prometheus-matrix-bot/bot"
+	"github.com/Scrin/prometheus-matrix-bot/logging"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -15,6 +17,7 @@ func main() {
 	alertmanagerURL := ""
 	user := ""
 	pass := ""
+	logLevel := "info"
 
 	for _, e := range os.Environ() {
 		split := strings.SplitN(e, "=", 2)
@@ -33,6 +36,8 @@ func main() {
 			user = split[1]
 		case "PROMETHEUS_AUTH_PASSWORD":
 			pass = split[1]
+		case "LOG_LEVEL":
+			logLevel = split[1]
 		}
 	}
 
@@ -46,9 +51,12 @@ func main() {
 		pass = os.Args[7]
 	}
 
+	logging.Setup(logLevel)
+
 	if homeserverURL == "" || userID == "" || accessToken == "" || admin == "" || alertmanagerURL == "" || user == "" || pass == "" {
 		log.Fatal("invalid config")
 	}
 
-	log.Fatal(bot.NewPrometheusBot(homeserverURL, userID, accessToken, admin, alertmanagerURL, user, pass).Run())
+	err := bot.NewPrometheusBot(homeserverURL, userID, accessToken, admin, alertmanagerURL, user, pass).Run()
+	log.WithError(err).Fatal("Failed to start")
 }

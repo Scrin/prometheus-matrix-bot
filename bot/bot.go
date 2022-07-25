@@ -1,11 +1,14 @@
 package bot
 
 import (
-	"log"
-	"prometheus-matrix-bot/matrix"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/Scrin/prometheus-matrix-bot/matrix"
+
 	"github.com/matrix-org/gomatrix"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // PrometheusBot contains all of the actual bot logic
@@ -22,9 +25,9 @@ func (bot PrometheusBot) handleMemberEvent(event *gomatrix.Event) {
 	if event.Content["membership"] == "invite" && *event.StateKey == bot.client.UserID {
 		if event.Sender == bot.adminUser {
 			bot.client.JoinRoom(event.RoomID)
-			log.Print("Joined room " + event.RoomID)
+			log.WithFields(log.Fields{"roomID": event.RoomID}).Info("Joined room")
 		} else {
-			log.Print("Ignoring room invite " + event.RoomID)
+			log.WithFields(log.Fields{"roomID": event.RoomID}).Info("Ignoring room invite")
 		}
 	}
 }
@@ -34,13 +37,21 @@ func (bot PrometheusBot) handleTextEvent(event *gomatrix.Event) {
 	if m, ok := event.Content["msgtype"].(string); ok {
 		msgtype = m
 	}
+	metrics.eventsHandled.With(prometheus.Labels{"event_type": "m.room.message", "msg_type": msgtype}).Inc()
 	if msgtype == "m.text" && event.Sender != bot.client.UserID {
 		msg := event.Content["body"].(string)
 		parts := strings.Split(msg, " ")
 		msgCommand := parts[0]
+		isCommand := true
 		switch msgCommand {
 		case "!alerts":
 			bot.alertQuery(event.RoomID, parts)
+			metrics.commandsHandled.With(prometheus.Labels{"command": msgCommand}).Inc()
+		default:
+			isCommand = false
+		}
+		if isCommand {
+			metrics.commandsHandled.With(prometheus.Labels{"command": msgCommand}).Inc()
 		}
 	}
 }
@@ -49,7 +60,7 @@ func (bot PrometheusBot) initialSync() {
 	resp := bot.client.InitialSync()
 	for roomID := range resp.Rooms.Invite {
 		bot.client.JoinRoom(roomID)
-		log.Print("Joined room " + roomID)
+		log.WithFields(log.Fields{"roomID": roomID}).Info("Joined room")
 	}
 }
 
@@ -64,6 +75,7 @@ func (bot PrometheusBot) Run() error {
 
 // NewPrometheusBot creates a new PrometheusBot instance and initializes a matrix client
 func NewPrometheusBot(homeserverURL, userID, accessToken, admin, alertmanagerURL, user, pass string) PrometheusBot {
+	initMetrics()
 	c := matrix.NewClient(homeserverURL, userID, accessToken)
 	bot := PrometheusBot{
 		c,

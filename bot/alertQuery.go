@@ -42,6 +42,10 @@ func (bot PrometheusBot) alertQuery(sendTo string, msgParts []string) {
 		filter = msgParts[1]
 	}
 	req, err := http.NewRequest("GET", bot.alertmanagerURL+"/api/v2/alerts/groups", nil)
+	if err != nil {
+		bot.client.SendMessage(sendTo, err.Error())
+		return
+	}
 	req.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(bot.prometheusUser+":"+bot.prometheusPassword)))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

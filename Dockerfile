@@ -1,7 +1,7 @@
-FROM golang:1.15
+FROM golang:1.17
 
-COPY . /go/src/prometheus-matrix-bot/
-RUN go get prometheus-matrix-bot/...
-RUN go install prometheus-matrix-bot
+WORKDIR /go/src/github.com/Scrin/prometheus-matrix-bot/
+COPY . ./
+RUN go install .
 
 CMD prometheus-matrix-bot

@@ -5,6 +5,9 @@ import (
 	"html/template"
 	"strings"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 )
 
 // A single Alert from an AlertMessage
@@ -43,26 +46,56 @@ func formatMessage(alert Alert) string {
 	if err != nil {
 		return err.Error()
 	}
+
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, alert); err != nil {
 		return err.Error()
 	}
+
 	return buf.String()
 }
 
 // AlertUpdate updates an alert by editing an existing message with the same ID or posting a new if no previous ID was found
 func (bot PrometheusBot) AlertUpdate(msg AlertMessage) {
+	log.WithFields(log.Fields{
+		"status":       msg.Status,
+		"receiver":     msg.Receiver,
+		"version":      msg.Version,
+		"groupKey":     msg.GroupKey,
+		"messageCount": len(msg.Alerts),
+	}).Info("Received alerts message")
+
 	for _, alert := range msg.Alerts {
-		sendTo := strings.ReplaceAll(strings.TrimPrefix(msg.Receiver, "matrix-"), "\\", "")
-		eventID := bot.idToMatrixEvent[sendTo+alert.Fingerprint]
-		if eventID == "" {
-			eventID = <-bot.client.SendMessage(sendTo, formatMessage(alert))
-			bot.idToMatrixEvent[sendTo+alert.Fingerprint] = eventID
-		} else {
-			bot.client.EditMessage(sendTo, eventID, formatMessage(alert))
-		}
-		if alert.Status == "resolved" {
-			delete(bot.idToMatrixEvent, sendTo+alert.Fingerprint)
-		}
+		go func(alert Alert) {
+			metrics.pendingAlerts.Inc()
+			defer metrics.pendingAlerts.Dec()
+
+			sendTo := strings.ReplaceAll(strings.TrimPrefix(msg.Receiver, "matrix-"), "\\", "")
+			oldEventID := bot.idToMatrixEvent[sendTo+alert.Fingerprint]
+			newEventID := ""
+
+			if oldEventID == "" {
+				newEventID = <-bot.client.SendMessage(sendTo, formatMessage(alert))
+				bot.idToMatrixEvent[sendTo+alert.Fingerprint] = newEventID
+			} else {
+				bot.client.EditMessage(sendTo, oldEventID, formatMessage(alert))
+			}
+
+			if alert.Status == "resolved" {
+				delete(bot.idToMatrixEvent, sendTo+alert.Fingerprint)
+			}
+
+			log.WithFields(log.Fields{
+				"status":           alert.Status,
+				"startsAt":         alert.StartsAt,
+				"endsAt":           alert.EndsAt,
+				"fingerprint":      alert.Fingerprint,
+				"description":      alert.Annotations["description"],
+				"oldMatrixEventID": oldEventID,
+				"newMatrixEventID": newEventID,
+				"isEdit":           oldEventID == "",
+			}).Info("Sent alert message to matrix")
+			metrics.alertsHandled.With(prometheus.Labels{"status": msg.Status}).Inc()
+		}(alert)
 	}
 }

@@ -2,8 +2,9 @@ package matrix
 
 import (
 	"encoding/json"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	strip "github.com/grokify/html-strip-tags-go"
 	"github.com/matrix-org/gomatrix"
@@ -80,7 +81,7 @@ func (c Client) OnEvent(eventType string, callback gomatrix.OnEventListener) {
 func (c Client) JoinRoom(roomID string) {
 	_, err := c.client.JoinRoom(roomID, "", nil)
 	if err != nil {
-		log.Print("Failed to join room "+roomID+": ", err)
+		log.WithError(err).WithFields(log.Fields{"roomID": roomID}).Error("Failed to join room")
 	}
 }
 
@@ -119,7 +120,7 @@ func processOutboundEvents(client Client) {
 			}
 			var httpErr httpError
 			if jsonErr := json.Unmarshal(err.(gomatrix.HTTPError).Contents, &httpErr); jsonErr != nil {
-				log.Print("Failed to parse error response!", jsonErr)
+				log.WithError(jsonErr).Error("Failed to parse error response")
 			}
 
 			fatalFailure := false
@@ -132,8 +133,10 @@ func processOutboundEvents(client Client) {
 				fatalFailure = true
 				fallthrough
 			default:
-				log.Print("Failed to send message to room "+event.RoomID+" err: ", err)
-				log.Print(string(err.(gomatrix.HTTPError).Contents))
+				log.WithError(err).WithFields(log.Fields{
+					"roomID":    event.RoomID,
+					"HttpError": string(err.(gomatrix.HTTPError).Contents),
+				}).Error("Failed to send message to room")
 			}
 			if !event.RetryOnFailure || fatalFailure {
 				event.done <- ""

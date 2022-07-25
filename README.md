@@ -17,6 +17,6 @@ You should set up receivers with webhook configs with name beginning with "matri
 receivers:
 - name: matrix-!dfgh5yhdF54yFTJH:example.com
   webhook_configs:
-    - url: http://127.0.0.1:8080
+    - url: http://127.0.0.1:8080/alert
       send_resolved: true
 ```
