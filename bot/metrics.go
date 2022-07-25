@@ -11,7 +11,7 @@ var metrics struct {
 }
 
 func initMetrics() {
-	metricPrefix := "siikabot_"
+	metricPrefix := "prometheus_matrix_bot_"
 	metrics.webhooksHandled = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: metricPrefix + "webhooks_handled_count",
 		Help: "Total number of webhook requests handled",
