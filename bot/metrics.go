@@ -27,7 +27,7 @@ func initMetrics() {
 	metrics.alertsHandled = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: metricPrefix + "alerts_handled_count",
 		Help: "Total number of alert events handled",
-	}, []string{"command"})
+	}, []string{"status"})
 	metrics.pendingAlerts = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: metricPrefix + "pending_alerts",
 		Help: "Number of alerts pending",
