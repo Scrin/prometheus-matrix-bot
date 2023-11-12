@@ -93,7 +93,7 @@ func (bot PrometheusBot) AlertUpdate(msg AlertMessage) {
 				"description":      alert.Annotations["description"],
 				"oldMatrixEventID": oldEventID,
 				"newMatrixEventID": newEventID,
-				"isEdit":           oldEventID == "",
+				"isEdit":           oldEventID != "",
 			}).Info("Sent alert message to matrix")
 			metrics.alertsHandled.With(prometheus.Labels{"status": msg.Status}).Inc()
 		}(alert)
